@@ -1,0 +1,363 @@
+---
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+<html lang="pt-pt">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="view port"
+      content="width=device-width,
+      initial-scale=1.0">
+    <title>Relatório Final</title>
+    <style>
+      * {
+        padding: 0px;
+        border-radius: 0px;
+      }
+      body {
+        font-family: Times New Roman;
+      }
+      h1 {
+        color: black;
+        padding: 10px;
+      }
+      h2 {
+        color: black;
+        padding: 0px;
+      }
+      section {
+        padding: 10px;
+        top: 10px;
+      }
+      .pie {
+        display: flex;
+        justify-content: center
+        padding: 0px;
+      }
+      .subtitulo {
+        text-align: center;
+        font-size: 2em;
+      }
+      .tabela {
+        margin: auto;
+      }
+      .row {
+        display: flex;
+      }
+
+      .column {
+        flex: 33.33%;
+        padding: 5px;
+      }
+      div {
+        margin: auto;
+        padding: 0px;
+      }
+      p {
+        padding-left: 8px;
+        padding-right: 8px;
+        text-align: justify;
+        text-justify: inter-word;
+        text-indent: 28px;
+        font-size: 1.5em;
+      }
+      #titulo {
+        font-size: 3em;
+        text-align: center;
+        padding: 10px;
+        font-weight: bold;
+      }
+      #logo {
+        padding: 20px;
+      }
+      #life_control {
+        display: inline;
+      }
+      img {
+        display: block;
+        margin: 0px auto;
+      }
+      p.legenda {
+        text-align: center;
+        font-size: 1.2em;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div id="logo"><img src="fotos/logo-iscte.png" alt="Logotipo do Iscte"></div>
+      <p id="titulo">European Values Study</p>
+      <p class="subtitulo">Caso prático 7</p>
+      <section>
+        <p><strong>Trabalho realizado por:</strong></p>
+        <p>António Duarte de Oliveira Santos, 123434</p>
+        <p>Francisco da Silva Santos Rosa, 123418</p>
+        <p>Gonçalo Eduardo Costa dos Santos Henriques, 123422</p>
+        <p>José Vilingue Alberto, 121959</p>
+        <p>Pedro da Costa Santos Silva, 123404</p>
+      </section>
+    </header>
+    <main>
+      <h1>INTRODUÇÃO</h1>
+      <p>Este estudo baseia-se em dados provenientes do Estudo dos Valores Europeus (EVS) de 2017, um projeto abrangente que visa captar as tendências em valores, crenças, atitudes e comportamentos sociais em toda a Europa. O EVS é uma fonte rica de informação que permite aos investigadores explorar como as sociedades europeias estão evoluindo em face a mudanças globais e desafios internos.</p>
+      <p>Neste contexto, a base de dados que nos foi atribuída centra-se especificamente na comparação entre Portugal e Espanha, dois dos países incluídos no EVS. Esta seleção proporciona uma oportunidade única para examinar as semelhanças e diferenças entre estas duas nações vizinhas, com um enfoque em variáveis demográficas, emocionais e valorativas.</p>
+      <p>O objetivo é compreender melhor como os cidadãos destes países percebem questões relativas ao bem-estar pessoal e social, ao envolvimento comunitário e às prioridades de vida.</p>
+      <p>A análise direcionada para Portugal e Espanha busca explorar as nuances culturais e sociais entre os dois países, utilizando um conjunto de dados específico que inclui informações sobre aspectos como a idade, género, estado civil, número de filhos, níveis de felicidade, participação em atividades de voluntariado e avaliações sobre o controle da própria vida. Ao investigar estas variáveis, o estudo visa fornecer insights sobre os padrões culturais e sociais, contribuindo assim para um entendimento mais profundo das dinâmicas que caracterizam estas sociedades no contexto europeu mais amplo.</p>
+
+```{r setup, include=FALSE, echo=FALSE}
+library(openxlsx)
+library(DescTools)
+library(moments)
+library(flextable)
+library(descr)
+library(tidyverse)
+library(kableExtra)
+library(jmv)
+
+## TAREFA 1 - Importamos o ficheiro do excel
+df <- read.xlsx("AED_CP7_2.xlsx", sheet = "Dados")   
+names(df)
+```
+
+
+```{r echo=FALSE, include=FALSE}
+## TAREFA 2 - Alteramos o nome de 2 variáveis
+names(df)[25] <- "Numero.Filhos" #from 'v239_r' to 'Numero.Filhos'
+colnames(df)[15] <- "Happy.Degree" #from 'v7' to "Happy.Degree'
+names(df)[18] <- "Life.Control" #from 'v38' to 'Life.Control'
+names(df)
+
+## TAREFA 3 - Identificar valores omissos de uma variável
+#Criamos uma funçao que identifica a moda de variaveis nominais
+moda <- function(var) {
+  return (names(table(var))[table(var) == max(table(var))])
+}
+
+#Criamos uma funçao para identificar os diversos valores omissos nas 15 variaveis
+valores_nulos <- function(){
+  print("Valores nulos por variáveis.")
+  for (variavel in names(df)) {
+    print(paste(variavel, ":", sum(is.na(df[[variavel]])), "      Tipo de variável:", class(df[[variavel]])))
+  }
+}
+
+## TAREFA 4 - Realizar a inputaçao de dados nas variaveis com valores omissos
+# Atribuiçao de valor numerica a valor nominal
+df$Life.Control[which(df$Life.Control == "none at all")] <- 1  
+df$Life.Control[which(df$Life.Control == "a great deal")] <- 10
+unique(df$Life.Control)
+# Tranformou-se em Numérico
+df$Life.Control <- as.numeric(df$Life.Control)
+# Atribuimos a mediana aos valores omissos com valor numérico
+mediana_control <- summary(df$Life.Control)[3]
+df$Life.Control[is.na(df$Life.Control)] <- mediana_control
+
+mediana_nr_filhos <- summary(df$Numero.Filhos)[3]
+df$Numero.Filhos[is.na(df$Numero.Filhos)] <- mediana_nr_filhos
+
+mediana_age <- summary(df$Age)[3]
+df$Age[is.na(df$Age)] <- mediana_age
+
+# Atribuimos a moda aos valores omissos de variaveis com valor nominal
+df$Work[is.na(df$Work)] <- moda(df$Work)
+df$v1[is.na(df$v1)] <- 1 #foi alterado manualmente o valor omisso na variavel de codigo correspondente (v1) para a sua correspondência
+
+df$Voluntary[is.na(df$Voluntary)] <- moda(df$Voluntary)
+df$v21[is.na(df$v21)] <- 2 #foi alterado manualmente o valor omisso na variavel de codigo correspondente (v21) para a sua correspondência
+
+df$Status[is.na(df$Status)] <- moda(df$Status)
+
+df$Happy.Degree[is.na(df$Happy.Degree)] <- moda(df$Happy.Degree)
+
+valores_nulos()
+#A partir deste momento so existem 3 valores omissos na variavel 'v226' correspondente ao ano de nascimento (variavel não trabalhada)
+
+
+## TAREFA EXTRA - SIMPLIFICAR OS ATRIBUTOS DA VARIAVEL STATUS
+df$Status[which(df$Status == unique(df$Status)[2])] <- "never married/registered partnership"
+unique(df$Status)
+
+## TAREFA EXTRA - ORDENAR OS ATRIBUTOS DOS GRAUS DE IMPORTANCIA POR NIVEIS E TAMBEM DA VARIAVEL HAPPY_DEGREE
+# Criamos uma funçao para ordenar os niveis das variaveis valorativas
+ordena <- function(var, df) {
+  df[[var]] <- factor(df[[var]], levels = c("very important", "quite important", "not important", "not at all important", "dont know", "no answer"))
+  return(df)
+}
+
+colunas_para_ordenar <- c("Work", "Family", "Friends", "Leisure", "Politics", "Religion")
+
+for (col in colunas_para_ordenar) {
+  df <- ordena(col, df)
+}
+
+# Tambem foi ordenado os atributos da variavel Happy.Degree
+#Happy.Degree
+df=df%>%
+  mutate(Happy.Degree=factor(Happy.Degree,levels=c("very happy","quite happy","not very happy","not at all happy")))
+unique(df$Happy.Degree)
+
+
+## TAREFA 5 / TABELAS DESCRITIVAS/ GRÁFICOS
+
+# TABELAS DE FREQUENCIAS [Happy_Degree, Life_Control]
+
+simple_table <- function(var) {
+  tab_n <- table(var)
+  return(rbind(tab_n, tab_p=round(prop.table(tab_n) * 100, 1)))
+}
+
+style_ftab <- function(f_tab) {
+  f_tab <- bg(f_tab, bg="lightblue", part = "header")
+  f_tab <- bold(f_tab, part = "header")
+  f_tab <- bold(f_tab, j=1)
+  f_tab <- autofit(f_tab)
+  return(f_tab)
+}
+
+simple_ftab <- function(var) {
+  tab <- simple_table(var)
+  ftab <- flextable(data.frame(Degree=colnames(tab), n=as.numeric(tab[1,]), percentagem=as.numeric(tab[2,])))
+  ftab <- style_ftab(ftab)
+  return(ftab)
+}
+
+simple_ftab_ct <- function(var) {
+  tab <- simple_table(var)
+  ftab <- flextable(data.frame(País=colnames(tab), n=as.numeric(tab[1,]), percentagem=as.numeric(tab[2,])))
+  ftab <- style_ftab(ftab)
+  return(ftab)
+}
+
+```
+      <h1>PREPARAÇÃO DOS DADOS</h1>
+      <p>Os dados foram preparados com o auxílio de duas ferramentas diferentes, nomeadamente, Excel e a linguagem R.</p>
+      <p>Em Excel começou-se por realizar a atribuição de código para a variável que dizia respeito ao número de filhos dos inquiridos com valores omissos (atribuindo o código 99). Em seguida foram criadas variáveis com correspondência em texto das variáveis numéricas base, criando-se assim as variáveis Work, Family, Friends, Leisure, Politics, Religions, Status, Voluntary e Gender. No processo da criação das variáveis correspondentes aos códigos obteve-se vários erros que foram imediatamente eliminados.</p>
+      <p>Presumimos que não podíamos realizar grandes estudos com a variável correspondente ao ano de nascimento dos inquiridos, portanto, foi criada a variável Age pois, entendeu-se ser mais relevante um estudo com a idade dos mesmos.</p>
+      <p>Tendo concluído as etapas acima, sentimo-nos prontos a tratar dos dados em R antes de partir para a análise exploratória dos dados.</p>
+      <p>No que toca a parte da preparação para análise dos dados em R e posteriormente em Jamovi, iniciou-se por alterar o nome de 3 variáveis, ficando estas com a designação de Happy.Degree, Life.Control e Numero.Filhos.</p>
+      <p>A partir da observação dos dados pudemos perceber que ainda permaneciam valores omissos em algumas das nossas variáveis pelo que foi aplicado o critério de atribuir a mediana ou moda de acordo ao tipo de variável (qualitativa ou quantitativa).</p>
+      <p>Posteriormente para uma melhor análise graficamente foi também simplificado um dos atributos da variável correspondente ao estado civil (variável Status) dos inquiridos. Por uma mesma ideologia do critério anterior foi ordenado os diversos atributos das variáveis classificadas como valorativas.</p>
+      <p>Após esta extensa preparação de dados com recurso às duas ferramentas referidas pudemos partir para a análise dos mesmos</p>
+```{r echo=FALSE, include=FALSE}
+labels = unique(df$Status)
+percentagem <- as.numeric(round(prop.table(table(df$Status)) * 100, 1))
+n <- as.numeric(table(df$Status))
+labels <- paste(labels, " (", n, ", ", percentagem, "%", ")", sep="")
+```
+      <h1>ANÁLISE EXPLORATÓRIA DE DADOS</h1>
+      <h2>Estudo Sociodemográfico</h2>
+      <p>Os nossos dados foram recolhidos em dois países (Portugal e Espanha), estes dados tiveram uma distribuição semelhante para os dois países havendo uma ligera vantagem nos registos correspondentes a Portugal, como vemos na tabela 1</p>
+```{r echo=FALSE, include=TRUE}
+ftab_country <- simple_ftab_ct(df$Country) 
+ftab_country
+```
+      <p class="legenda">Tabela 1 - Nacionalidade dos inquiridos</p>
+      <p>Em relação a idade dos inquiridos, por intermédio das tabelas 2 e 3, pudemos identificar os intervalos de idade dos mesmos que varia dos 15 aos 80 anos de idade para Portugal e dos 18 aos 80 para a Espanha. Nas mesmas tabelas foi possível verificar, por intermédio da mediana, que em comparação a Espanha os inquiridos de Portugal eram maioritariamente mais velhos.</p>
+      <img src="fotos/Idades_Espanha_Portugal_Excel.png" alt="Tabela de idades em Portugal e Espanha">
+      <p>No que diz respeito ao género dos inquiridos, foram criadas tabelas onde podemos visualizar a frequência dos dados entre os países em relação ao género, verificou-se uma maior percentagem do sexo femenino, sendo maior esta discrepância em Portugal do que Espanha.</p>
+      <div class="tabela"><img src="fotos/Género_Portugal_Espanha_Excel.png" alt="Tabela de género em Portugal e Espanha"></div>
+      <p>Na análise dos estados civis entre Espanha e Portugal, observam-se padrões distintos que refletem as escolhas pessoais e culturais de cada sociedade. Em Portugal, a maioria dos inquiridos encontra-se casado enquanto que em Espanha essa maioria é relativa e não absoluta, também existe uma percentagem considerável de indivíduos que nunca casaram ou que não estão em uniões de facto registadas. A presença de pessoas divorciadas, viúvas e separadas indica uma diversidade de situações familiares. Comparativamente, em Portugal, a percentagem de viúvos destaca-se por ser mais elevada. A proporção de indivíduos que nunca casaram ou que nunca estiveram resgistados pela união de facto é menor em Portugal do que em Espanha. Estas diferenças podem sugerir variações nas normas sociais e na legislação relativa ao casamento.</p>
+<div class="pie">
+```{r echo=FALSE, include=TRUE}
+# Criamos uma gráfico circular respetivo ao estado civil para os 2 Países
+tab <- table(df$Status[which(df$Country == "Portugal")])
+labels <- names(tab)
+percentagem <- as.numeric(round(prop.table(tab) * 100, 1))
+n <- as.numeric(tab)
+labels <- paste(labels, " (", n, ", ", percentagem, "%", ")", sep="")
+pie(table(df$Status[which(df$Country == "Portugal")]),
+    main="Estado Civil Portugal",
+    labels = labels,
+    col=c("#7fffd4","#fbaed2","#ffff99", "#b0e0e6", "#f08080"),
+    cex=1)
+```
+
+```{r echo=FALSE, include=TRUE}
+tab <- table(df$Status[which(df$Country == "Spain")])
+labels <- names(tab)
+percentagem <- as.numeric(round(prop.table(tab) * 100, 1))
+n <- as.numeric(tab)
+labels <- paste(labels, " (", n, ", ", percentagem, "%", ")", sep="")
+pie(table(df$Status[which(df$Country == "Spain")]),
+    main="Estado Civil Espanha",
+    labels = labels,
+    col=c("#7fffd4","#fbaed2","#ffff99", "#a7f432", "#b0e0e6", "#f08080"),
+    cex=1)
+```
+</div>
+<p class="legenda">Gráficos circulares sobre o Estado Civil de Espanha e Portugal</p>
+<h2>Dinâmicas sociais e pessoais</h2>
+<h3>Qual é a distribuição da perceção do controlo da vida?</h3>
+<p>Ao analisar a tabela e o gráfico, conclui-se que, em média, os inquiridos avaliam o nível de controlo da sua vida desde moderado (nível 7) até ao nível máximo (nível 10), sendo que a maioria relativa se avalia no nível 8. A distribuição da percepção de controlo sobre a vida dos indivíduos revela uma inclinação para avaliações mais altas, indicando que, de uma maneira geral, as pessoas tendem a sentir-se capazes de influenciar e gerir os acontecimentos da sua vida. A consistência dessas percepções é reforçada pelo padrão de respostas, que não apresenta uma variação extrema. Apesar de haver alguma dispersão nas avaliações, a maior concentração de respostas posiciona-se acima do ponto médio da escala (5.5), sugerindo um senso de controle pessoal relativamente robusto entre os inquiridos. Este sentimento de autonomia é uma dimensão importante para a compreensão do bem-estar e da motivação individual, e parece estar presente na maioria dos inquiridos.</p>
+<div class="row">
+  <div class="column"><img src="fotos/Life_Control_Jamovi.png" alt="Tabela do Life Control"></div>
+  <div class="column"><img src="fotos/Life_Control_Survey_Jamovi.png" alt="Gráfico de Life Control"></div>
+</div>
+<p class="legenda">Análise descritiva e gráfica da variável Life.Control</p>
+<h3>A taxa de aderência ao voluntariado nos últimos seis meses e a sua relação com as variáveis valorativas</h3>
+<p>No que diz respeito ao voluntariado, foi analisada a relação que esta variável apresenta com o grau de importância que os inquiridos dão à política. Após a analise do seguinte gráfico, conclui-se que quanto mais importância dão à política, maior é a probabilidade de terem realizado voluntariado nos últimos seis meses. Também foi estudado esta variável com as restantes variáveis valorativas e também se observou a tendência referida.</p>
+<div><img src="fotos/Voluntary_VS_Politics_Survey_Jamovi.png" alt="Gráfico de cruzamento Voluntary vs Politics"></div>
+<p class="legenda">Gráfico de cruzamento entre Voluntary e Politics importance</p>
+<h3>Como se distribue o estado civil entre diferentes faixas estárias?</h3>
+<p>Este box plot demonstra a distribuição das idades dos indivíduos de acordo com o seu estado civil. Os indivíduos casados tendem a ter uma distribuição de idades mais ampla, com uma mediana de idade na casa dos 40 anos. As pessoas que nunca casaram ou que estão registadas pela união de facto tendem a ser mais jovens, com medianas de idade significativamente inferiores às dos casados. Por sua vez, os indivíduos divorciados e separados mostram uma faixa etária similar à dos casados, mas com menos dispersão de idades. Nota-se ainda que os viúvos tendem a ser mais velhos, o que é expectável dado que a viuvez está frequentemente associada ao avanço da idade. A presença de outliers em quase todas as categorias sugere casos individuais que diferem significativamente da norma etária para cada estado civil.</p>
+<div><img src="fotos/boxplot - Marital Status vs Age.png" alt="Boxplot de Status vs Age"></div>
+<p class="legenda">Gráfico de cruzamento entre Marital Status e Age</p>
+<h3>Relação entre as idades e a importância dada ao trabalho</h3>
+<p>O gráfico de idades e a importância atribuída ao trabalho revela que, entre os inquiridos, a valorização do trabalho é maior nas faixas etárias intermédias, aproximadamente entre os 38 e os 65 anos, onde o trabalho é frequentemente considerado importante. Observa-se uma tendência para a importância de o trabalho diminuir com o avançar da idade, o que poderá estar relacionado com a aproximação da reforma e a redefinição das prioridades pessoais. Por outro lado, os atributos dont know e no answer mostram-se menos significativas para a análise, dada a ausência de uma tendência etária clara, não sendo relevante para o nosso estudo.</p>
+<div><img src="fotos/Age_VS_Work_Jamovi.png" alt="Gráfico de cruzamento entre Age e importância dada ao trabalho."></div>
+<p class="legenda">Gráfico de cruzamento entre Age e importância dada ao trabalho.</p>
+<p>As tabelas apresentam uma avaliação do grau de felicidade dos inquiridos. Em Espanha, existe um maior número de pontos percentuais para o atributo very happy em comparação com Portugal. Contudo, a soma dos que se avaliam como felizes (very happy e quite happy) é semelhante nos dois países, indicando que a maioria dos indivíduos em ambas as populações se consideram felizes até certo ponto. Por outro lado, a proporção de pessoas que se avaliam como not very happy é menor em Espanha do que em Portugal, sugerindo que o sentimento de infelicidade pode ser menos prevalente entre os espanhóis.</p>
+<div class="pie">
+```{r echo=FALSE, include=TRUE}
+ftab_hapiness <- simple_ftab(df$Happy.Degree[which(df$Country == "Spain")]) #Para filtrar --> [which(df$Country == "Spain")]
+ftab_hapiness
+```
+
+```{r echo=FALSE, include=TRUE}
+ftab_hapiness <- simple_ftab(df$Happy.Degree[which(df$Country == "Portugal")]) #Para filtrar --> [which(df$Country == "Portugal")]
+ftab_hapiness
+
+```
+</div>
+<p class="legenda">Boxplot cruzando variável Age com Status civil</p>
+<h3>Qual a distribuição do número de filhos entre os Países?</h3>
+<p>O estudo comparativo entre Portugal e Espanha evidencia diferenças significativas na configuração familiar no que toca ao número de filhos. Em Portugal, a tendência para famílias com um maior número de filhos é ligeiramente mais acentuada, o que é visível pela mediana que se situa nos dois filhos. A moda em Portugal confirma esta observação, sendo o número mais comum de filhos por família também de dois. Pelo contrário, a Espanha apresenta uma mediana de um filho, indicando uma tendência para famílias mais pequenas. A análise das frequências percentuais sublinha esta diferença, com uma percentagem mais elevada de famílias espanholas sem filhos, em comparação com as portuguesas. A variabilidade do número de filhos entre as famílias é comparável nos dois países, como mostram os desvios-padrão semelhantes.</p>
+<div class="row">
+  <div class="column"><img src="fotos/Country_VS_Nº_Filhos_Jamovi.png" alt="Tabela cruzada Country vs Numero de filhos"></div>
+  <div class="column"><img src="fotos/Country_VS_Nº_Filhos_Survey_Jamovi.png" alt="Gráfico cruzado Country vs Numero de filhos"></div>
+</div>
+<p class="legenda">Comparação entre Country e número de filhos</p>
+<h3>Importância dada ao Trabalho entre os Países</h3>
+<p>Através da comparação entre Portugal e Espanha em relação à importância atribuída ao trabalho (variável v1 ilustrada na tabela e no gráfico de barras), podemos concluir que os espanhóis tendem a valorizar o trabalho consistentemente, como indicado pela média mais alta e pelo desvio-padrão menor em comparação com Portugal. Isso significa que não só o trabalho é considerado, em média, mais importante na Espanha, mas também que há uma concordância mais acentuada entre os espanhóis quanto a essa valorização. A mediana igual nos dois países mostra uma tendência central comum, porém a consistência das respostas espanholas sugere um consenso mais forte em relação à importância do trabalho no contexto espanhol.</p>
+<div class="row">
+  <div class="column"><img src="fotos/Country_VS_v1_Jamovi.png" alt="Tabela cruzada Country vs v1 [Work]"></div>
+  <div class="column"><img src="fotos/Country_VS_v1_Barras_Jamovi.png" alt="Tabela cruzada Country vs v1 [Work]"></div>
+</div>
+<p class="legenda">Comparação entre Country e v1 (código da variável work)</p>
+<p>No que toca ainda à importância dada ao trabalho, foi estudada a seguinte questão:</p>
+<h3>Será que o número de filhos influencia no grau de importância dada ao trabalho?</h3>
+<p>Como análise geral verificou-se que a maioria atribui como um grau de very importante ao trabalho, seguindo a tendência de que quanto menor fosse o número de filhos do inquirido maior seria o grau de importância dada ao trabalho. A partir das seguintes tabelas dinâmicas podemos concluir que existe uma tendência inversa entre ambos os países. Por um lado, é Portugal que segue a mesma tendência que o caso geral, enquanto, Espanha segue uma tendência contrária, ou seja, quanto maior o grau de importância dada ao trabalho maior seria o número de filhos do inquirido.</p>
+<img src="fotos/PivotTable_PT_Work_N_FIlhos_Excel.png" alt="Pivotable cruzada Work vs Numero.Filhos Portugal">
+<p class="legenda">Tabela de cruzamento Work vs Número de filhos Portugal</p>
+<img src="fotos/PivotTable_SP_Work_N_FIlhos_Excel.png" alt="Pivotable cruzada Work vs Numero.Filhos Espanha">
+<p class="legenda">Tabela de cruzamento Work vs Número de filhos Espanha</p>
+<h1>Conclusão</h1>
+<p>A análise comparativa entre Portugal e Espanha com base nos dados do Estudo dos Valores Europeus (EVS) de 2017 revela insights notáveis sobre as semelhanças e diferenças socioculturais e demográficas entre estes países vizinhos. As observações indicam diversas alterações em variáveis como a idade, estado civil, perceção do controlo da vida, participação em voluntariado nos últimos 6 meses, importância dada ao trabalho, o número de filhos, entre outros.</p>
+<p>Os cidadãos de ambos os países apresentam uma tendência para avaliar positivamente o controlo sobre as suas vidas e participar em atividades de voluntariado, quando valorizam a política. No que diz respeito ao estado civil, ambos os países contêm uma maior parte de indivíduos casados, contudo, Espanha mostra uma maior diversidade nos estados civis.</p>
+<p>No âmbito da configuração familiar, Portugal tende a ter famílias com um maior número de filhos em comparação com Espanha. Além disso, a Espanha apresenta uma valorização mais consistente do trabalho. Estes insights fornecem uma visão valiosa das dinâmicas culturais e sociais que caracterizam Portugal e Espanha, realçando tanto as suas semelhanças quanto as suas diferenças.</p>
+    </main>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+

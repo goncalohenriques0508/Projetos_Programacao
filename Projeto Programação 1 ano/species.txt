@@ -1,0 +1,5 @@
+castanheiro,caduca,True,arvore,8.1,100  
+cedro,persistente,False,arvore,6.0,80
+pinheiro-manso,persistente,True,arvore,3.0,100
+loureiro,persistente,False,arbusto,3.0,40
+sobreiro,caduca,False,arvore,5.0,40
